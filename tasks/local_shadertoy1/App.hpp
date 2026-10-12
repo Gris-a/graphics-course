@@ -20,6 +20,12 @@ private:
   void drawFrame();
 
 private:
+
+  struct PushConstants {
+    glm::vec2 iResolution;
+    float     iTime;
+  };
+
   OsWindowingManager windowing;
   std::unique_ptr<OsWindow> osWindow;
 
@@ -28,4 +34,8 @@ private:
 
   std::unique_ptr<etna::Window> vkWindow;
   std::unique_ptr<etna::PerFrameCmdMgr> commandManager;
+
+  etna::ComputePipeline computePipeline;
+  etna::Image storageImage;
+  vk::DescriptorSet computeDescriptorSet = VK_NULL_HANDLE; 
 };
