@@ -20,10 +20,10 @@ private:
   void drawFrame();
 
 private:
-
-  struct PushConstants {
+  struct PushConstants
+  {
     glm::vec2 iResolution;
-    float     iTime;
+    float iTime;
   };
 
   OsWindowingManager windowing;
@@ -37,5 +37,5 @@ private:
 
   etna::ComputePipeline computePipeline;
   etna::Image storageImage;
-  vk::DescriptorSet computeDescriptorSet = VK_NULL_HANDLE; 
+  vk::DescriptorSet computeDescriptorSet = VK_NULL_HANDLE;
 };

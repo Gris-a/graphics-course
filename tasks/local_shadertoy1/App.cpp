@@ -161,29 +161,35 @@ void App::drawFrame()
 
       // TODO: Record your commands here!
       auto shaderInfo = etna::get_shader_program("shader");
-      
+
       auto set = etna::create_descriptor_set(
         shaderInfo.getDescriptorLayoutId(0),
         currentCmdBuf,
-        {
-          etna::Binding{0, storageImage.genBinding(vk::Sampler{}, vk::ImageLayout::eGeneral)}
-        });
+        {etna::Binding{0, storageImage.genBinding(vk::Sampler{}, vk::ImageLayout::eGeneral)}});
       vk::DescriptorSet vkSet = set.getVkSet();
 
       currentCmdBuf.bindPipeline(vk::PipelineBindPoint::eCompute, computePipeline.getVkPipeline());
       currentCmdBuf.bindDescriptorSets(
-        vk::PipelineBindPoint::eCompute, computePipeline.getVkPipelineLayout(), 0, 1, &vkSet, 0, nullptr);
+        vk::PipelineBindPoint::eCompute,
+        computePipeline.getVkPipelineLayout(),
+        0,
+        1,
+        &vkSet,
+        0,
+        nullptr);
 
       PushConstants pc{
         .iResolution = glm::vec2(resolution),
-        .iTime       = static_cast<float>(glfwGetTime()),
+        .iTime = static_cast<float>(glfwGetTime()),
       };
 
       currentCmdBuf.pushConstants(
         computePipeline.getVkPipelineLayout(),
         vk::ShaderStageFlagBits::eCompute,
-        0, sizeof(pc), &pc);
-        
+        0,
+        sizeof(pc),
+        &pc);
+
       uint32_t groupCountX = (resolution.x + 15) / 16;
       uint32_t groupCountY = (resolution.y + 15) / 16;
       currentCmdBuf.dispatch(groupCountX, groupCountY, 1);
@@ -200,17 +206,21 @@ void App::drawFrame()
       vk::ImageBlit blitRegion{};
       blitRegion.srcSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1};
       blitRegion.srcOffsets[0] = vk::Offset3D{0, 0, 0};
-      blitRegion.srcOffsets[1] = vk::Offset3D{static_cast<int32_t>(resolution.x),
-                                              static_cast<int32_t>(resolution.y), 1};
+      blitRegion.srcOffsets[1] =
+        vk::Offset3D{static_cast<int32_t>(resolution.x), static_cast<int32_t>(resolution.y), 1};
       blitRegion.dstSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1};
       blitRegion.dstOffsets[0] = vk::Offset3D{0, 0, 0};
-      blitRegion.dstOffsets[1] = vk::Offset3D{static_cast<int32_t>(resolution.x),
-                                              static_cast<int32_t>(resolution.y), 1};
+      blitRegion.dstOffsets[1] =
+        vk::Offset3D{static_cast<int32_t>(resolution.x), static_cast<int32_t>(resolution.y), 1};
 
       currentCmdBuf.blitImage(
-        storageImage.get(), vk::ImageLayout::eTransferSrcOptimal,
-        backbuffer, vk::ImageLayout::eTransferDstOptimal,
-        1, &blitRegion, vk::Filter::eNearest);
+        storageImage.get(),
+        vk::ImageLayout::eTransferSrcOptimal,
+        backbuffer,
+        vk::ImageLayout::eTransferDstOptimal,
+        1,
+        &blitRegion,
+        vk::Filter::eNearest);
 
       // At the end of "rendering", we are required to change how the pixels of the
       // swpchain image are laid out in memory to something that is appropriate

@@ -13,34 +13,34 @@
 class App
 {
 public:
-    App();
-    ~App();
+  App();
+  ~App();
 
-    void run();
+  void run();
 
 private:
-    void drawFrame();
+  void drawFrame();
 
-    struct PushConstants
-    {
-        glm::vec2 iResolution;
-        float iTime;
-    };
+  struct PushConstants
+  {
+    glm::vec2 iResolution;
+    float iTime;
+  };
 
-    OsWindowingManager windowing;
-    std::unique_ptr<OsWindow> osWindow;
+  OsWindowingManager windowing;
+  std::unique_ptr<OsWindow> osWindow;
 
-    glm::uvec2 resolution;
-    bool useVsync;
+  glm::uvec2 resolution;
+  bool useVsync;
 
-    std::unique_ptr<etna::Window> vkWindow;
-    std::unique_ptr<etna::PerFrameCmdMgr> commandManager;
+  std::unique_ptr<etna::Window> vkWindow;
+  std::unique_ptr<etna::PerFrameCmdMgr> commandManager;
 
-    etna::Image bufferAImage;
-    etna::Image bufferBImage;
-    etna::Sampler proceduralSampler;
+  etna::Image bufferAImage;
+  etna::Image bufferBImage;
+  etna::Sampler proceduralSampler;
 
-    etna::GraphicsPipeline bufferAPipeline;
-    etna::GraphicsPipeline bufferBPipeline;
-    etna::GraphicsPipeline imagePipeline;
+  etna::GraphicsPipeline bufferAPipeline;
+  etna::GraphicsPipeline bufferBPipeline;
+  etna::GraphicsPipeline imagePipeline;
 };

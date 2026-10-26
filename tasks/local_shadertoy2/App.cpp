@@ -77,81 +77,70 @@ App::App()
 
   // TODO: Initialize any additional resources you require here!
 
-    etna::create_program(
-        "buffer_a",
-        {
-            LOCAL_SHADERTOY2_SHADERS_ROOT "buffer_a.frag.spv",
-            LOCAL_SHADERTOY2_SHADERS_ROOT "fullscreen.vert.spv"
+  etna::create_program(
+    "buffer_a",
+    {LOCAL_SHADERTOY2_SHADERS_ROOT "buffer_a.frag.spv",
+     LOCAL_SHADERTOY2_SHADERS_ROOT "fullscreen.vert.spv"});
+
+  etna::create_program(
+    "buffer_b",
+    {LOCAL_SHADERTOY2_SHADERS_ROOT "buffer_b.frag.spv",
+     LOCAL_SHADERTOY2_SHADERS_ROOT "fullscreen.vert.spv"});
+
+  etna::create_program(
+    "image",
+    {LOCAL_SHADERTOY2_SHADERS_ROOT "image.frag.spv",
+     LOCAL_SHADERTOY2_SHADERS_ROOT "fullscreen.vert.spv"});
+
+  auto& ctx = etna::get_context();
+
+  const auto textureUsage =
+    vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled;
+
+  bufferAImage = ctx.createImage(etna::Image::CreateInfo{
+    .extent = vk::Extent3D{resolution.x, resolution.y, 1},
+    .name = "ProceduralBufferA",
+    .format = vk::Format::eR8G8B8A8Unorm,
+    .imageUsage = textureUsage,
+  });
+
+  bufferBImage = ctx.createImage(etna::Image::CreateInfo{
+    .extent = vk::Extent3D{resolution.x, resolution.y, 1},
+    .name = "ProceduralBufferB",
+    .format = vk::Format::eR8G8B8A8Unorm,
+    .imageUsage = textureUsage,
+  });
+
+  proceduralSampler = etna::Sampler(etna::Sampler::CreateInfo{.name = "procedural_sampler"});
+
+  auto& pipelineManager = ctx.getPipelineManager();
+
+  auto makeFullscreenPipeline =
+    [&pipelineManager](const char* programName, vk::Format colorFormat) {
+      return pipelineManager.createGraphicsPipeline(
+        programName,
+        etna::GraphicsPipeline::CreateInfo{
+          .vertexShaderInput = {},
+          .rasterizationConfig =
+            vk::PipelineRasterizationStateCreateInfo{
+              .polygonMode = vk::PolygonMode::eFill,
+              .cullMode = vk::CullModeFlagBits::eNone,
+              .frontFace = vk::FrontFace::eCounterClockwise,
+              .lineWidth = 1.0f,
+            },
+          .fragmentShaderOutput =
+            {
+              .colorAttachmentFormats = {colorFormat},
+            },
         });
-
-    etna::create_program(
-        "buffer_b",
-        {
-            LOCAL_SHADERTOY2_SHADERS_ROOT "buffer_b.frag.spv",
-            LOCAL_SHADERTOY2_SHADERS_ROOT "fullscreen.vert.spv"
-        });
-
-    etna::create_program(
-        "image",
-        {
-            LOCAL_SHADERTOY2_SHADERS_ROOT "image.frag.spv",
-            LOCAL_SHADERTOY2_SHADERS_ROOT "fullscreen.vert.spv"
-        });
-
-    auto& ctx = etna::get_context();
-
-    const auto textureUsage =
-        vk::ImageUsageFlagBits::eColorAttachment |
-        vk::ImageUsageFlagBits::eSampled;
-
-    bufferAImage = ctx.createImage(etna::Image::CreateInfo{
-        .extent = vk::Extent3D{resolution.x, resolution.y, 1},
-        .name = "ProceduralBufferA",
-        .format = vk::Format::eR8G8B8A8Unorm,
-        .imageUsage = textureUsage,
-    });
-
-    bufferBImage = ctx.createImage(etna::Image::CreateInfo{
-        .extent = vk::Extent3D{resolution.x, resolution.y, 1},
-        .name = "ProceduralBufferB",
-        .format = vk::Format::eR8G8B8A8Unorm,
-        .imageUsage = textureUsage,
-    });
-
-    proceduralSampler = etna::Sampler(
-        etna::Sampler::CreateInfo{
-            .name = "procedural_sampler"
-        });
-
-    auto& pipelineManager = ctx.getPipelineManager();
-
-    auto makeFullscreenPipeline =
-        [&pipelineManager](const char* programName, vk::Format colorFormat)
-    {
-        return pipelineManager.createGraphicsPipeline(
-            programName,
-            etna::GraphicsPipeline::CreateInfo{
-                .vertexShaderInput = {},
-                .rasterizationConfig =
-                    vk::PipelineRasterizationStateCreateInfo{
-                        .polygonMode = vk::PolygonMode::eFill,
-                        .cullMode = vk::CullModeFlagBits::eNone,
-                        .frontFace = vk::FrontFace::eCounterClockwise,
-                        .lineWidth = 1.0f,
-                    },
-                .fragmentShaderOutput = {
-                    .colorAttachmentFormats = {colorFormat},
-                },
-            });
     };
 
-    const auto textureFormat = vk::Format::eR8G8B8A8Unorm;
+  const auto textureFormat = vk::Format::eR8G8B8A8Unorm;
 
-    bufferAPipeline = makeFullscreenPipeline("buffer_a", textureFormat);
-    bufferBPipeline = makeFullscreenPipeline("buffer_b", textureFormat);
+  bufferAPipeline = makeFullscreenPipeline("buffer_a", textureFormat);
+  bufferBPipeline = makeFullscreenPipeline("buffer_b", textureFormat);
 
-    imagePipeline =
-        makeFullscreenPipeline("image", vkWindow->getCurrentFormat());
+  imagePipeline = makeFullscreenPipeline("image", vkWindow->getCurrentFormat());
 }
 
 App::~App()
@@ -175,153 +164,133 @@ void App::run()
 
 void App::drawFrame()
 {
-    auto currentCmdBuf = commandManager->acquireNext();
+  auto currentCmdBuf = commandManager->acquireNext();
 
-    etna::begin_frame();
+  etna::begin_frame();
 
-    auto nextSwapchainImage = vkWindow->acquireNext();
+  auto nextSwapchainImage = vkWindow->acquireNext();
 
-    if (nextSwapchainImage)
+  if (nextSwapchainImage)
+  {
+    auto [backbuffer, backbufferView, backbufferAvailableSem, backbufferReadyForPresentSem] =
+      *nextSwapchainImage;
+
+    ETNA_CHECK_VK_RESULT(currentCmdBuf.begin(vk::CommandBufferBeginInfo{}));
+
     {
-        auto [
-            backbuffer,
-            backbufferView,
-            backbufferAvailableSem,
-            backbufferReadyForPresentSem
-        ] = *nextSwapchainImage;
+      PushConstants pc{
+        .iResolution = glm::vec2(resolution),
+        .iTime = static_cast<float>(glfwGetTime()),
+      };
 
-        ETNA_CHECK_VK_RESULT(
-            currentCmdBuf.begin(vk::CommandBufferBeginInfo{}));
+      auto bindFullscreenPipeline = [&](etna::GraphicsPipeline& pipeline) {
+        currentCmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.getVkPipeline());
 
+        currentCmdBuf.pushConstants<PushConstants>(
+          pipeline.getVkPipelineLayout(), vk::ShaderStageFlagBits::eFragment, 0, {pc});
+      };
+
+      {
+        etna::RenderTargetState target(
+          currentCmdBuf,
+          {{0, 0}, {resolution.x, resolution.y}},
+          {{
+            .image = bufferAImage.get(),
+            .view = bufferAImage.getView({}),
+          }},
+          {});
+
+        bindFullscreenPipeline(bufferAPipeline);
+        currentCmdBuf.draw(3, 1, 0, 0);
+      }
+
+      {
+        etna::RenderTargetState target(
+          currentCmdBuf,
+          {{0, 0}, {resolution.x, resolution.y}},
+          {{
+            .image = bufferBImage.get(),
+            .view = bufferBImage.getView({}),
+          }},
+          {});
+
+        bindFullscreenPipeline(bufferBPipeline);
+        currentCmdBuf.draw(3, 1, 0, 0);
+      }
+
+      auto imageInfo = etna::get_shader_program("image");
+
+      auto set = etna::create_descriptor_set(
+        imageInfo.getDescriptorLayoutId(0),
+        currentCmdBuf,
         {
-            PushConstants pc{
-                .iResolution = glm::vec2(resolution),
-                .iTime = static_cast<float>(glfwGetTime()),
-            };
+          etna::Binding{
+            0,
+            bufferAImage.genBinding(
+              proceduralSampler.get(), vk::ImageLayout::eShaderReadOnlyOptimal)},
+          etna::Binding{
+            1,
+            bufferBImage.genBinding(
+              proceduralSampler.get(), vk::ImageLayout::eShaderReadOnlyOptimal)},
+        });
 
-            auto bindFullscreenPipeline =
-                [&](etna::GraphicsPipeline& pipeline)
-            {
-                currentCmdBuf.bindPipeline(
-                    vk::PipelineBindPoint::eGraphics,
-                    pipeline.getVkPipeline());
+      {
+        etna::RenderTargetState target(
+          currentCmdBuf,
+          {{0, 0}, {resolution.x, resolution.y}},
+          {{
+            .image = backbuffer,
+            .view = backbufferView,
+          }},
+          {});
 
-                currentCmdBuf.pushConstants<PushConstants>(
-                    pipeline.getVkPipelineLayout(),
-                    vk::ShaderStageFlagBits::eFragment,
-                    0,
-                    {pc});
-            };
+        bindFullscreenPipeline(imagePipeline);
 
-            {
-                etna::RenderTargetState target(
-                    currentCmdBuf,
-                    {{0, 0}, {resolution.x, resolution.y}},
-                    {{
-                        .image = bufferAImage.get(),
-                        .view = bufferAImage.getView({}),
-                    }},
-                    {});
+        currentCmdBuf.bindDescriptorSets(
+          vk::PipelineBindPoint::eGraphics,
+          imagePipeline.getVkPipelineLayout(),
+          0,
+          {set.getVkSet()},
+          {});
 
-                bindFullscreenPipeline(bufferAPipeline);
-                currentCmdBuf.draw(3, 1, 0, 0);
-            }
+        currentCmdBuf.draw(3, 1, 0, 0);
+      }
 
-            {
-                etna::RenderTargetState target(
-                    currentCmdBuf,
-                    {{0, 0}, {resolution.x, resolution.y}},
-                    {{
-                        .image = bufferBImage.get(),
-                        .view = bufferBImage.getView({}),
-                    }},
-                    {});
+      etna::set_state(
+        currentCmdBuf,
+        backbuffer,
+        vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+        {},
+        vk::ImageLayout::ePresentSrcKHR,
+        vk::ImageAspectFlagBits::eColor);
 
-                bindFullscreenPipeline(bufferBPipeline);
-                currentCmdBuf.draw(3, 1, 0, 0);
-            }
-
-            auto imageInfo = etna::get_shader_program("image");
-
-            auto set = etna::create_descriptor_set(
-                imageInfo.getDescriptorLayoutId(0),
-                currentCmdBuf,
-                {
-                    etna::Binding{
-                        0,
-                        bufferAImage.genBinding(
-                            proceduralSampler.get(),
-                            vk::ImageLayout::eShaderReadOnlyOptimal)
-                    },
-                    etna::Binding{
-                        1,
-                        bufferBImage.genBinding(
-                            proceduralSampler.get(),
-                            vk::ImageLayout::eShaderReadOnlyOptimal)
-                    },
-                });
-
-            {
-                etna::RenderTargetState target(
-                    currentCmdBuf,
-                    {{0, 0}, {resolution.x, resolution.y}},
-                    {{
-                        .image = backbuffer,
-                        .view = backbufferView,
-                    }},
-                    {});
-
-                bindFullscreenPipeline(imagePipeline);
-
-                currentCmdBuf.bindDescriptorSets(
-                    vk::PipelineBindPoint::eGraphics,
-                    imagePipeline.getVkPipelineLayout(),
-                    0,
-                    {set.getVkSet()},
-                    {});
-
-                currentCmdBuf.draw(3, 1, 0, 0);
-            }
-
-            etna::set_state(
-                currentCmdBuf,
-                backbuffer,
-                vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-                {},
-                vk::ImageLayout::ePresentSrcKHR,
-                vk::ImageAspectFlagBits::eColor);
-
-            etna::flush_barriers(currentCmdBuf);
-        }
-
-        ETNA_CHECK_VK_RESULT(currentCmdBuf.end());
-
-        auto renderingDone = commandManager->submit(
-            std::move(currentCmdBuf),
-            std::move(backbufferAvailableSem),
-            std::move(backbufferReadyForPresentSem));
-
-        const bool presented = vkWindow->present(
-            std::move(renderingDone),
-            backbufferView);
-
-        if (!presented)
-            nextSwapchainImage = std::nullopt;
+      etna::flush_barriers(currentCmdBuf);
     }
 
-    etna::end_frame();
+    ETNA_CHECK_VK_RESULT(currentCmdBuf.end());
 
-    // Восстанавливаем swapchain после сворачивания окна.
-    if (!nextSwapchainImage && osWindow->getResolution() != glm::uvec2{0, 0})
-    {
-        auto [w, h] = vkWindow->recreateSwapchain(
-            etna::Window::DesiredProperties{
-                .resolution = {resolution.x, resolution.y},
-                .vsync = useVsync,
-                .numFramesInFlight =
-                    static_cast<uint32_t>(commandManager->getCmdBufferCount()),
-            });
+    auto renderingDone = commandManager->submit(
+      std::move(currentCmdBuf),
+      std::move(backbufferAvailableSem),
+      std::move(backbufferReadyForPresentSem));
 
-        ETNA_VERIFY((resolution == glm::uvec2{w, h}));
-    }
+    const bool presented = vkWindow->present(std::move(renderingDone), backbufferView);
+
+    if (!presented)
+      nextSwapchainImage = std::nullopt;
+  }
+
+  etna::end_frame();
+
+  // Восстанавливаем swapchain после сворачивания окна.
+  if (!nextSwapchainImage && osWindow->getResolution() != glm::uvec2{0, 0})
+  {
+    auto [w, h] = vkWindow->recreateSwapchain(etna::Window::DesiredProperties{
+      .resolution = {resolution.x, resolution.y},
+      .vsync = useVsync,
+      .numFramesInFlight = static_cast<uint32_t>(commandManager->getCmdBufferCount()),
+    });
+
+    ETNA_VERIFY((resolution == glm::uvec2{w, h}));
+  }
 }
