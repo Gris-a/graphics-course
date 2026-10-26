@@ -116,9 +116,9 @@ App::App()
   auto& pipelineManager = ctx.getPipelineManager();
 
   auto makeFullscreenPipeline =
-    [&pipelineManager](const char* programName, vk::Format colorFormat) {
+    [&pipelineManager](const char* program_name, vk::Format color_format) {
       return pipelineManager.createGraphicsPipeline(
-        programName,
+        program_name,
         etna::GraphicsPipeline::CreateInfo{
           .vertexShaderInput = {},
           .rasterizationConfig =
@@ -130,7 +130,7 @@ App::App()
             },
           .fragmentShaderOutput =
             {
-              .colorAttachmentFormats = {colorFormat},
+              .colorAttachmentFormats = {color_format},
             },
         });
     };
