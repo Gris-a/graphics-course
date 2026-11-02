@@ -55,8 +55,7 @@ void HeightmapGenerator::allocateResources(glm::uvec2 size)
 
   maxHeightBuffer = context.createBuffer(etna::Buffer::CreateInfo{
     .size = sizeof(uint32_t),
-    .bufferUsage =
-      vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+    .bufferUsage = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
     .name = "heightmap_max_value",
   });
 
