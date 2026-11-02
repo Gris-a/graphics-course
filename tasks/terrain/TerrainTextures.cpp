@@ -68,13 +68,12 @@ void createTexture(
   etna::BlockingTransferHelper& transfer_helper,
   etna::OneShotCmdMgr& command_manager)
 {
-  texture = etna::get_context().createImage(
-    etna::Image::CreateInfo{
-      .extent = vk::Extent3D{TerrainTextures::TEXTURE_SIZE, TerrainTextures::TEXTURE_SIZE, 1},
-      .name = name,
-      .format = format,
-      .imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
-    });
+  texture = etna::get_context().createImage(etna::Image::CreateInfo{
+    .extent = vk::Extent3D{TerrainTextures::TEXTURE_SIZE, TerrainTextures::TEXTURE_SIZE, 1},
+    .name = name,
+    .format = format,
+    .imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
+  });
 
   transfer_helper.uploadImage(command_manager, texture, 0, 0, std::as_bytes(pixels));
 }
@@ -84,12 +83,11 @@ void createTexture(
 void TerrainTextures::load(
   etna::BlockingTransferHelper& transfer_helper, etna::OneShotCmdMgr& command_manager)
 {
-  materialSampler = etna::Sampler(
-    etna::Sampler::CreateInfo{
-      .filter = vk::Filter::eLinear,
-      .addressMode = vk::SamplerAddressMode::eRepeat,
-      .name = "terrain_material_sampler",
-    });
+  materialSampler = etna::Sampler(etna::Sampler::CreateInfo{
+    .filter = vk::Filter::eLinear,
+    .addressMode = vk::SamplerAddressMode::eRepeat,
+    .name = "terrain_material_sampler",
+  });
 
   const std::filesystem::path textureRoot{TERRAIN_TEXTURES_ROOT};
   for (std::size_t i = 0; i < MATERIAL_COUNT; ++i)

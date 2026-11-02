@@ -9,10 +9,9 @@
 App::App()
 {
   glm::uvec2 initialRes = {1280, 720};
-  mainWindow = windowing.createWindow(
-    OsWindow::CreateInfo{
-      .resolution = initialRes,
-    });
+  mainWindow = windowing.createWindow(OsWindow::CreateInfo{
+    .resolution = initialRes,
+  });
 
   renderer = std::make_unique<Renderer>(initialRes);
 
