@@ -42,29 +42,25 @@ void HeightmapGenerator::allocateResources(glm::uvec2 size)
   }
   heightmapSize = size;
 
-  heightmapImage = context.createImage(
-    etna::Image::CreateInfo{
-      .extent = vk::Extent3D{size.x, size.y, 1},
-      .name = "island_heightmap",
-      .format = vk::Format::eR32Sfloat,
-      .imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage |
-        vk::ImageUsageFlagBits::eTransferSrc,
-    });
+  heightmapImage = context.createImage(etna::Image::CreateInfo{
+    .extent = vk::Extent3D{size.x, size.y, 1},
+    .name = "island_heightmap",
+    .format = vk::Format::eR32Sfloat,
+    .imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage |
+      vk::ImageUsageFlagBits::eTransferSrc,
+  });
 
-  heightmapSampler = etna::Sampler(
-    etna::Sampler::CreateInfo{
-      .filter = vk::Filter::eLinear,
-      .addressMode = vk::SamplerAddressMode::eClampToEdge,
-      .name = "heightmap_sampler",
-    });
+  heightmapSampler = etna::Sampler(etna::Sampler::CreateInfo{
+    .filter = vk::Filter::eLinear,
+    .addressMode = vk::SamplerAddressMode::eClampToEdge,
+    .name = "heightmap_sampler",
+  });
 
-  maxHeightBuffer = context.createBuffer(
-    etna::Buffer::CreateInfo{
-      .size = sizeof(uint32_t),
-      .bufferUsage =
-        vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-      .name = "heightmap_max_value",
-    });
+  maxHeightBuffer = context.createBuffer(etna::Buffer::CreateInfo{
+    .size = sizeof(uint32_t),
+    .bufferUsage = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+    .name = "heightmap_max_value",
+  });
 
   commandManager = context.createOneShotCmdMgr();
 }

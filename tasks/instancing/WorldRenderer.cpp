@@ -15,13 +15,12 @@ void WorldRenderer::allocateResources(glm::uvec2 swapchain_resolution)
   resolution = swapchain_resolution;
   auto& context = etna::get_context();
 
-  mainViewDepth = context.createImage(
-    etna::Image::CreateInfo{
-      .extent = vk::Extent3D{resolution.x, resolution.y, 1},
-      .name = "main_view_depth",
-      .format = vk::Format::eD32Sfloat,
-      .imageUsage = vk::ImageUsageFlagBits::eDepthStencilAttachment,
-    });
+  mainViewDepth = context.createImage(etna::Image::CreateInfo{
+    .extent = vk::Extent3D{resolution.x, resolution.y, 1},
+    .name = "main_view_depth",
+    .format = vk::Format::eD32Sfloat,
+    .imageUsage = vk::ImageUsageFlagBits::eDepthStencilAttachment,
+  });
 
   heightmapGenerator.allocateResources();
 
@@ -52,18 +51,16 @@ void WorldRenderer::allocateResources(glm::uvec2 swapchain_resolution)
   }
 
   gridIndexCount = static_cast<uint32_t>(indices.size());
-  gridVertices = context.createBuffer(
-    etna::Buffer::CreateInfo{
-      .size = vertices.size() * sizeof(glm::vec2),
-      .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
-      .name = "terrain_grid_vertices",
-    });
-  gridIndices = context.createBuffer(
-    etna::Buffer::CreateInfo{
-      .size = indices.size() * sizeof(uint32_t),
-      .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
-      .name = "terrain_grid_indices",
-    });
+  gridVertices = context.createBuffer(etna::Buffer::CreateInfo{
+    .size = vertices.size() * sizeof(glm::vec2),
+    .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
+    .name = "terrain_grid_vertices",
+  });
+  gridIndices = context.createBuffer(etna::Buffer::CreateInfo{
+    .size = indices.size() * sizeof(uint32_t),
+    .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
+    .name = "terrain_grid_indices",
+  });
 
   transferHelper = std::make_unique<etna::BlockingTransferHelper>(
     etna::BlockingTransferHelper::CreateInfo{.stagingSize = TerrainTextures::UPLOAD_SIZE});

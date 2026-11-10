@@ -14,14 +14,12 @@
 #include <span>
 #include <stdexcept>
 
-namespace
-{
 constexpr float WORLD_SIZE = 20.0f;
 constexpr float HEIGHT_SCALE = 6.0f;
 constexpr float CELL_SIZE = 0.1f;
 constexpr int CELL_COUNT = 200;
 
-uint32_t hash_cell(uint32_t value)
+static uint32_t hash_cell(uint32_t value)
 {
   value ^= value >> 16;
   value *= 0x7feb352du;
@@ -30,14 +28,14 @@ uint32_t hash_cell(uint32_t value)
   return value ^ (value >> 16);
 }
 
-float random_value(uint32_t& state)
+static float random_value(uint32_t& state)
 {
   state = hash_cell(state + 0x9e3779b9u);
   return static_cast<float>(state >> 8) / 16777216.0f;
 }
 
 template <typename Value>
-Value read_accessor(const tinygltf::Model& model, int accessor_index, std::size_t index)
+static Value read_accessor(const tinygltf::Model& model, int accessor_index, std::size_t index)
 {
   const auto& accessor = model.accessors.at(accessor_index);
   const auto& view = model.bufferViews.at(accessor.bufferView);
@@ -54,7 +52,7 @@ Value read_accessor(const tinygltf::Model& model, int accessor_index, std::size_
   return result;
 }
 
-float terrain_height(const HeightmapGenerator& heightmap, glm::vec2 position)
+static float terrain_height(const HeightmapGenerator& heightmap, glm::vec2 position)
 {
   const glm::vec2 grid = (position / WORLD_SIZE + 0.5f) * 256.0f;
   const glm::vec2 base = glm::floor(grid);
@@ -67,17 +65,15 @@ float terrain_height(const HeightmapGenerator& heightmap, glm::vec2 position)
     return h00 + local.x * (h10 - h00) + local.y * (h01 - h00);
   return h11 + (1.0f - local.x) * (h01 - h11) + (1.0f - local.y) * (h10 - h11);
 }
-}
 
 void RockRenderer::load(
   etna::BlockingTransferHelper& transfer_helper, etna::OneShotCmdMgr& command_manager)
 {
   auto& context = etna::get_context();
-  sampler = etna::Sampler(
-    etna::Sampler::CreateInfo{
-      .filter = vk::Filter::eLinear,
-      .addressMode = vk::SamplerAddressMode::eRepeat,
-      .name = "rock_sampler"});
+  sampler = etna::Sampler(etna::Sampler::CreateInfo{
+    .filter = vk::Filter::eLinear,
+    .addressMode = vk::SamplerAddressMode::eRepeat,
+    .name = "rock_sampler"});
   const std::array<std::string, 2> names{"boulder_01", "rock_09"};
   for (std::size_t m = 0; m < models.size(); ++m)
   {
@@ -140,24 +136,19 @@ void RockRenderer::load(
         throw std::runtime_error("Rock index exceeds vertex count");
     }
     target.indexCount = static_cast<uint32_t>(indices.size());
-    target.vertices = context.createBuffer(
-      etna::Buffer::CreateInfo{
-        .size = vertices.size() * sizeof(RockVertex),
-        .bufferUsage =
-          vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
-        .name = "rock_vertices"});
-    target.indices = context.createBuffer(
-      etna::Buffer::CreateInfo{
-        .size = indices.size() * sizeof(uint32_t),
-        .bufferUsage =
-          vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst,
-        .name = "rock_indices"});
-    target.instances = context.createBuffer(
-      etna::Buffer::CreateInfo{
-        .size = MAX_INSTANCES * sizeof(RockInstance),
-        .bufferUsage =
-          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-        .name = "rock_instances"});
+    target.vertices = context.createBuffer(etna::Buffer::CreateInfo{
+      .size = vertices.size() * sizeof(RockVertex),
+      .bufferUsage = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
+      .name = "rock_vertices"});
+    target.indices = context.createBuffer(etna::Buffer::CreateInfo{
+      .size = indices.size() * sizeof(uint32_t),
+      .bufferUsage = vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst,
+      .name = "rock_indices"});
+    target.instances = context.createBuffer(etna::Buffer::CreateInfo{
+      .size = MAX_INSTANCES * sizeof(RockInstance),
+      .bufferUsage =
+        vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+      .name = "rock_instances"});
     transfer_helper.uploadBuffer(
       command_manager, target.vertices, 0, std::span<const RockVertex>{vertices});
     transfer_helper.uploadBuffer(
@@ -172,12 +163,11 @@ void RockRenderer::load(
       const auto& image = source.images.at(source.textures.at(textureIndices[t]).source);
       if (image.component != 4 || image.bits != 8 || image.width <= 0 || image.height <= 0)
         throw std::runtime_error("Unsupported rock texture format");
-      target.textures[t] = context.createImage(
-        etna::Image::CreateInfo{
-          .extent = {static_cast<uint32_t>(image.width), static_cast<uint32_t>(image.height), 1},
-          .name = "rock_material",
-          .format = t == 0 ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm,
-          .imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst});
+      target.textures[t] = context.createImage(etna::Image::CreateInfo{
+        .extent = {static_cast<uint32_t>(image.width), static_cast<uint32_t>(image.height), 1},
+        .name = "rock_material",
+        .format = t == 0 ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm,
+        .imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst});
       transfer_helper.uploadImage(
         command_manager, target.textures[t], 0, 0, std::as_bytes(std::span{image.image}));
     }
@@ -189,25 +179,34 @@ void RockRenderer::setupPipeline(vk::Format format)
   etna::create_program(
     "instancing_rocks",
     {INSTANCING_SHADERS_ROOT "rocks.vert.spv", INSTANCING_SHADERS_ROOT "rocks.frag.spv"});
-  pipeline = etna::get_context().getPipelineManager().createGraphicsPipeline(
-    "instancing_rocks",
-    etna::GraphicsPipeline::CreateInfo{
-      .vertexShaderInput =
-        {.bindings = {etna::VertexShaderInputDescription::Binding{
-           .byteStreamDescription =
-             {.stride = sizeof(RockVertex),
-              .attributes =
-                {{.format = vk::Format::eR32G32B32Sfloat, .offset = offsetof(RockVertex, position)},
-                 {.format = vk::Format::eR32G32B32Sfloat, .offset = offsetof(RockVertex, normal)},
-                 {.format = vk::Format::eR32G32Sfloat, .offset = offsetof(RockVertex, uv)}}}}}},
-      .rasterizationConfig =
-        vk::PipelineRasterizationStateCreateInfo{
-          .polygonMode = vk::PolygonMode::eFill,
-          .cullMode = vk::CullModeFlagBits::eNone,
-          .frontFace = vk::FrontFace::eCounterClockwise,
-          .lineWidth = 1.0f},
-      .fragmentShaderOutput = {
-        .colorAttachmentFormats = {format}, .depthAttachmentFormat = vk::Format::eD32Sfloat}});
+  pipeline =
+    etna::get_context()
+      .getPipelineManager()
+      .createGraphicsPipeline(
+        "instancing_rocks",
+        etna::GraphicsPipeline::CreateInfo{
+          .vertexShaderInput =
+            {
+              .bindings =
+                {
+                  etna::VertexShaderInputDescription::Binding{
+                    .byteStreamDescription =
+                      {.stride = sizeof(RockVertex),
+                       .attributes =
+                         {{.format = vk::Format::eR32G32B32Sfloat,
+                           .offset = offsetof(RockVertex, position)},
+                          {.format = vk::Format::eR32G32B32Sfloat,
+                           .offset = offsetof(RockVertex, normal)},
+                          {.format = vk::Format::eR32G32Sfloat,
+                           .offset = offsetof(RockVertex, uv)}}}}}},
+          .rasterizationConfig =
+            vk::PipelineRasterizationStateCreateInfo{
+              .polygonMode = vk::PolygonMode::eFill,
+              .cullMode = vk::CullModeFlagBits::eNone,
+              .frontFace = vk::FrontFace::eCounterClockwise,
+              .lineWidth = 1.0f},
+          .fragmentShaderOutput = {
+            .colorAttachmentFormats = {format}, .depthAttachmentFormat = vk::Format::eD32Sfloat}});
 }
 
 void RockRenderer::drawGui()

@@ -16,8 +16,6 @@
 #include <utility>
 #include <vector>
 
-namespace
-{
 
 constexpr std::array<std::string_view, TerrainTextures::MATERIAL_COUNT> MATERIAL_NAMES{{
   "sand_03",
@@ -26,7 +24,7 @@ constexpr std::array<std::string_view, TerrainTextures::MATERIAL_COUNT> MATERIAL
   "snow_01",
 }};
 
-std::vector<unsigned char> loadTexture(const std::filesystem::path& path)
+static std::vector<unsigned char> load_texture(const std::filesystem::path& path)
 {
   std::ifstream file(path, std::ios::binary);
   if (!file)
@@ -60,7 +58,7 @@ std::vector<unsigned char> loadTexture(const std::filesystem::path& path)
   return std::move(image.image);
 }
 
-void createTexture(
+static void create_texture(
   etna::Image& texture,
   std::span<const unsigned char> pixels,
   vk::Format format,
@@ -68,28 +66,25 @@ void createTexture(
   etna::BlockingTransferHelper& transfer_helper,
   etna::OneShotCmdMgr& command_manager)
 {
-  texture = etna::get_context().createImage(
-    etna::Image::CreateInfo{
-      .extent = vk::Extent3D{TerrainTextures::TEXTURE_SIZE, TerrainTextures::TEXTURE_SIZE, 1},
-      .name = name,
-      .format = format,
-      .imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
-    });
+  texture = etna::get_context().createImage(etna::Image::CreateInfo{
+    .extent = vk::Extent3D{TerrainTextures::TEXTURE_SIZE, TerrainTextures::TEXTURE_SIZE, 1},
+    .name = name,
+    .format = format,
+    .imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
+  });
 
   transfer_helper.uploadImage(command_manager, texture, 0, 0, std::as_bytes(pixels));
 }
 
-}
 
 void TerrainTextures::load(
   etna::BlockingTransferHelper& transfer_helper, etna::OneShotCmdMgr& command_manager)
 {
-  materialSampler = etna::Sampler(
-    etna::Sampler::CreateInfo{
-      .filter = vk::Filter::eLinear,
-      .addressMode = vk::SamplerAddressMode::eRepeat,
-      .name = "terrain_material_sampler",
-    });
+  materialSampler = etna::Sampler(etna::Sampler::CreateInfo{
+    .filter = vk::Filter::eLinear,
+    .addressMode = vk::SamplerAddressMode::eRepeat,
+    .name = "terrain_material_sampler",
+  });
 
   const std::filesystem::path textureRoot{INSTANCING_TEXTURES_ROOT};
   for (std::size_t i = 0; i < MATERIAL_COUNT; ++i)
@@ -97,25 +92,25 @@ void TerrainTextures::load(
     const auto directory = textureRoot / (std::string{MATERIAL_NAMES[i]} + "_1k") / "textures";
     const std::string prefix{MATERIAL_NAMES[i]};
 
-    const auto albedo = loadTexture(directory / (prefix + "_diff_1k.jpg"));
-    const auto roughness = loadTexture(directory / (prefix + "_rough_1k.jpg"));
-    const auto height = loadTexture(directory / (prefix + "_disp_1k.jpg"));
+    const auto albedo = load_texture(directory / (prefix + "_diff_1k.jpg"));
+    const auto roughness = load_texture(directory / (prefix + "_rough_1k.jpg"));
+    const auto height = load_texture(directory / (prefix + "_disp_1k.jpg"));
 
-    createTexture(
+    create_texture(
       albedoImages[i],
       albedo,
       vk::Format::eR8G8B8A8Srgb,
       "terrain_albedo_" + prefix,
       transfer_helper,
       command_manager);
-    createTexture(
+    create_texture(
       roughnessImages[i],
       roughness,
       vk::Format::eR8G8B8A8Unorm,
       "terrain_roughness_" + prefix,
       transfer_helper,
       command_manager);
-    createTexture(
+    create_texture(
       heightImages[i],
       height,
       vk::Format::eR8G8B8A8Unorm,
